@@ -91,6 +91,63 @@ public final class BPlusTree {
         System.out.println();
     }
 
+    private int findLeafPosition(BPTNode leaf, int key) {
+        int index = 0;
+        while (index < leaf.keyCount && leaf.keys[index] < key) {
+            index++;
+        }
+        return index;
+    }
+
+    private void shiftRightLeaf(BPTNode leaf, int index) {
+        int cursor = leaf.keyCount;
+        while (cursor > index) {
+            leaf.keys[cursor] = leaf.keys[cursor - 1];
+            leaf.values[cursor] = leaf.values[cursor - 1];
+            cursor--;
+        }
+    }
+
+    private boolean insertIntoFullLeaf(BPTNode leaf, int key, String value) {
+        // TODO [Cebolinha] dividir folha e promover nova chave.
+        if (DEBUG) {
+            System.out.println("WARN overflow pendente em folha");
+        }
+        return false;
+    }
+
+    // [NeoVini] Inserção básica em folha sem tratar overflow.
+    public boolean insert(int key, String value) {
+        if (root == null) {
+            BPTNode leaf = createLeaf();
+            leaf.keys[0] = key;
+            leaf.values[0] = value;
+            leaf.keyCount = 1;
+            leaf.valueCount = 1;
+            setRoot(leaf);
+            return true;
+        }
+
+        BPTNode leaf = findLeaf(key);
+        int position = findLeafPosition(leaf, key);
+
+        if (position < leaf.keyCount && leaf.keys[position] == key) {
+            leaf.values[position] = value;
+            return false;
+        }
+
+        if (leaf.keyCount < MAX_KEYS) {
+            shiftRightLeaf(leaf, position);
+            leaf.keys[position] = key;
+            leaf.values[position] = value;
+            leaf.keyCount++;
+            leaf.valueCount++;
+            return true;
+        }
+
+        return insertIntoFullLeaf(leaf, key, value);
+    }
+
     // [Tism-man] Nó básico com contadores manuais e ponteiros necessários.
     static final class BPTNode {
         boolean isLeaf;
