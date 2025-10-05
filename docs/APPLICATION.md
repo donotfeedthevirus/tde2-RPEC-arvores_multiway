@@ -1,214 +1,151 @@
 # Escopo técnico
 
-**Ordem**: `M = 4` → `MAX_KEYS = 3`, `MAX_CHILDREN = 4`.
-**Tipos**: `int` como chave, `String` como valor.
-**Operações obrigatórias**:
+**Objetivo**: implementar uma B+ Tree de ordem `M = 4` (máx. 3 chaves por nó) totalmente isolada, reutilizável e obedecendo às restrições da disciplina.
 
-- `search(int key) -> String|null`
-- `insert(int key, String value) -> boolean`
-- `remove(int key) -> boolean`
-- `range(int k1, int k2) -> void` (imprime `k:v` na ordem)
-- `findLeaf(int key) -> BPTNode` (helper)
-- `splitLeaf(...)`, `splitInternal(...)`, `insertIntoParent(...)`
-- `rebalanceAfterDelete(node, parent, parentIdx)` com **redistribuição** e **merge**
+## Diretrizes de implementação
+- **Sem coleções prontas**: nada de `List`, `ArrayList`, `Vector`, `StringBuilder`, `try/catch`, exceções ou similares.
+- **Nada de `array.length`**: use apenas `MAX_KEYS`, `MAX_CHILDREN` e contadores (`keyCount`, `childCount`, `valueCount`). `String.length()` continua permitido.
+- **Comentários com responsável**: marcar blocos e métodos com `// TODO [Nome] descrição`. Ex.: `// TODO [Tism-man] inicializar contadores`.
+- **Formato de commit**: `[Pessoa] tipo: mensagem`. Ex.: `[NeoVini] feat(insert): inserir ordenado (sem split)`.
+- **Debug opcional**: constante `static final boolean DEBUG` e helpers como `printNode` para evitar `System.out` solto.
+- **Testes**: pequenos cenários dirigidos pelo mesmo integrante que implementa o recurso.
 
-**Estruturas** (sem coleções):
-
+## Estruturas base (esboço)
 ```java
 class BPTNode {
   boolean isLeaf;
   int[] keys = new int[MAX_KEYS];
   int keyCount;
-  BPTNode[] children = new BPTNode[MAX_CHILDREN]; int childCount; // só em internos
-  String[] values = new String[MAX_KEYS];        int valueCount;  // só em folhas
-  BPTNode next; // encadeia folhas
+
+  BPTNode[] children = new BPTNode[MAX_CHILDREN];
+  int childCount; // apenas internos
+
+  String[] values = new String[MAX_KEYS];
+  int valueCount; // apenas folhas
+
+  BPTNode next; // encadeamento de folhas
 }
-class BPlusTree { /* root, ORDER, métodos acima */ }
+
+class BPlusTree {
+  BPTNode root;
+  static final int ORDER = 4;
+  static final int MAX_KEYS = 3;
+  static final int MAX_CHILDREN = 4;
+
+  // Métodos: search, insert, remove, range, findLeaf, splits, rebalance...
+}
 ```
+
+## Invariantes da B+ Tree
+- Nó interno deve ter entre `⌈M/2⌉` e `M` filhos (exceto raiz).
+- Nó folha mantém entre `⌈MAX_KEYS/2⌉` e `MAX_KEYS` chaves (exceto raiz solitária).
+- Todas as chaves ordenadas **crescentes** dentro de cada nó.
+- Todas as folhas no mesmo nível, encadeadas via `next`.
+
+## Fluxo macro das operações
+- **search(k)**: desce via `findLeaf(k)` usando `keyCount`, varre folha e devolve `String` ou `null`.
+- **insert(k, v)**: localiza folha, insere deslocando manualmente. Se `keyCount > MAX_KEYS`, chama `splitLeaf`, propaga promoção com `insertIntoParent`, podendo desencadear `splitInternal`. Atualiza raiz quando necessário.
+- **remove(k)**: localiza folha, remove deslocando à esquerda. Se `keyCount < min`, chama `rebalanceAfterDelete` tentando redistribuir; se não der, mergea irmãos e ajusta pai (atualiza raiz se ficar vazia).
+- **range(k1, k2)**: encontra primeira folha de `k1`, percorre folhas via `next`, filtrando intervalo.
 
 ---
 
-# Aplicação prática (exemplo que faz sentido)
+# Aplicação prática (exemplo)
 
-## Mini-Índice de Catálogo de Músicas
-
-Cenário: teremos um arquivinho CSV com **faixas** (id, artista, título). A **B+ tree** indexa por **track_id** para:
-
-- buscar por id (ex.: “me mostra a faixa 1024”),
-- **listar intervalos** (ex.: “todas as faixas entre 500 e 800” → range scan perfeito para B+),
-- inserir e remover mantendo tudo ordenado e rápido.
-
-### Formato do dataset (simples)
-
-```
-205;Daft Punk;Harder Better Faster Stronger
-318;Radiohead;Nude
-510;Kendrick Lamar;Evidências.
-...
-```
-
-- **Chave**: `track_id` (int)
-- **Valor**: `artista - título` (string concatenada)
-
-### CLI da aplicação
-
-```
-# carregar
-load data/tracks_small.csv
-
-# operações
-search 205
-insert 777 "Massive Attack - Teardrop"
-range 300 600
-remove 510
-search 510
-```
-
-Saídas sempre claras:
-
-```
-FOUND 205 -> Daft Punk - Harder Better Faster Stronger
-INSERT 777 -> OK
-RANGE 300..600:
-318 -> Radiohead - Nude
-510 -> Kendrick Lamar - DNA.
-REMOVE 510 -> OK
-FOUND 510 -> null
-```
-
-> Por que esse exemplo? Porque “catálogos” e “índices” é exatamente onde B+/B-Tree brilham (bancos, sistemas de arquivos). E **range por id** é natural pro vídeo.
+## Mini-índice de catálogo de músicas
+- Base CSV: `track_id;artista;título`. Valor armazenado = `artista - título`.
+- Comandos:
+  ```
+  load data/tracks_small.csv
+  search 205
+  insert 777 "Massive Attack - Teardrop"
+  range 300 600
+  remove 510
+  search 510
+  ```
+- Saída padrão: `FOUND 205 -> Daft Punk - Harder Better Faster Stronger`, `INSERT 777 -> OK`, `RANGE ...`, etc.
+- Range deve imprimir `k -> valor` ordenado cruzando várias folhas.
 
 ---
 
-# Planejamento por pessoa
+# Planejamento por integrante
+> Cada bloco inclui tarefas técnicas + commits esperados com o nome no título.
 
-> Cada pessoa tem: **o que contribui**, **tarefas técnicas** e **commits granulares** (para guia).
-
-## Tism-Man — Núcleo & Busca
-
-**Contribui com:** base da árvore, busca e utilitários de navegação.
-
-**Tarefas técnicas**
-
-- Definir `BPTNode` e `BPlusTree` (constantes, root).
-- Implementar `findLeaf(key)` (descida por internos).
-- Implementar `search(key)` na folha (sequencial até `keyCount`).
-- Pequenos utilitários de **inserção ordenada** em arrays (sem `length`).
+## Tism-man — Núcleo & Busca
+- Estruturar `BPTNode` e `BPlusTree` com campos, constantes e construtores. `// TODO [Tism-man] struct base`.
+- Implementar `findLeaf(int key)` descendo por nós internos com `keyCount`.
+- Implementar `search(int key)` varrendo a folha (`for (int i = 0; i < leaf.keyCount; i++)`).
+- Criar helpers `findPosition`, `shiftRight(int[] arr, int limit)`, `copyKeys` reutilizados pelos demais.
+- Implementar `DEBUG` + `printNode`.
 
 **Commits**
+1. `[Tism-man] feat(core): definir BPTNode e contadores`
+2. `[Tism-man] feat(core): raiz da BPlusTree e constantes de ordem`
+3. `[Tism-man] feat(search): findLeaf e search percorrendo folhas`
+4. `[Tism-man] test(search): cenários hit e miss`
 
-1. `feat(core): BPTNode com arrays/contadores e encadeamento de folhas`
-2. `feat(core): BPlusTree (ORDER/MAX_KEYS/MAX_CHILDREN/root)`
-3. `feat(search): findLeaf + search descendo até folha`
-4. `test(search): casos básicos (existe/não existe)`
+## NeoVini — Inserção em folha
+- `insert(int key, String value)` até antes do split. `// TODO [NeoVini] insert core`.
+- `shiftRightLeaf(BPTNode leaf, int start)` deslocando `keys`/`values` usando `keyCount`.
+- Política para duplicatas: sobrescrever valor existente e retornar `false` (documentar no JavaDoc).
+- Retornar `true` apenas quando inserir novo par.
 
----
+**Commits**
+5. `[NeoVini] feat(insert): inserir ordenado na folha (sem overflow)`
+6. `[NeoVini] refactor(util): helpers de deslocamento para folhas`
+7. `[NeoVini] test(insert): cenários básicos e duplicata`
 
-## NeoVini — Inserção “folha” & Ordenação
+## Cebolinha — Split & Promoção
+- `splitLeaf(BPTNode leaf)` criando nó direito, movendo metade final, atualizando `next`. `// TODO [Cebolinha] splitLeaf`.
+- `insertIntoParent(BPTNode parent, int promotedKey, BPTNode left, BPTNode right)` mantendo arrays ordenados.
+- `splitInternal(BPTNode node)` com promoção da chave central. `// TODO [Cebolinha] splitInternal`.
+- Garantir caso especial da raiz (criar nova raiz interna). `// TODO [Cebolinha] root split`.
+- Integrar com `insert` para propagar splits em cascata.
 
-**Contribui com:** inserir sem estourar e manter arrays ordenados.
+**Commits**
+8. `[Cebolinha] feat(split-leaf): dividir folha e atualizar encadeamento`
+9. `[Cebolinha] feat(parent-insert): promover chave para o pai`
+10. `[Cebolinha] feat(split-internal): dividir nó interno com promoção`
+11. `[Cebolinha] refactor(insert): conectar splits até a raiz`
+12. `[Cebolinha] test(split): inserir lote que causa cascata`
 
-**Tarefas técnicas**
+## Du — Range & Remoção
+- `range(int k1, int k2)` percorrendo folhas via `next`. `// TODO [Du] range`.
+- `remove(int key)` em folha: localizar índice, deslocar à esquerda (`shiftLeftLeaf`).
+- `rebalanceAfterDelete(node, parent, parentIndex)` implementando redistribuição e merge:
+  - Redistribuir emprestando do irmão com mais chaves.
+  - Mergear com irmão quando insuficiente, ajustando chave do pai.
+  - Atualizar raiz se ficar com um único filho.
+- Logs opcionais (`if (DEBUG) System.out.println("MERGE L+R")`).
 
-- `insert(key,value)` até caber na folha (sem split).
-- Função de **deslocar à direita** e inserir na posição correta, atualizando `keyCount/valueCount`.
-- Rejeitar duplicata ou sobrescrever (definir política simples e documentar).
-
-**Commits** 5. `feat(insert): inserir ordenado em folha (sem overflow)` 6. `refactor(util): helpers de deslocamento nos arrays` 7. `test(insert): lote pequeno + busca validando posições`
-
----
-
-## Cebolinha — Split & Promoção (folha e interno)
-
-**Contribui com:** quando lota, dividir e promover para manter invariantes.
-
-**Tarefas técnicas**
-
-- `splitLeaf(leaf)` → cria `right`, move metade de trás, conecta `leaf.next`.
-- `insertIntoParent(parent, promotedKey, left, right)`
-- `splitInternal(internal)` com **promoção da chave do meio**.
-- Ajustar caso **root** (criar nova raiz interna).
-
-**Commits** 8. `feat(split-leaf): dividir folha + encadear next` 9. `feat(parent-insert): inserir chave-guia/filhos no pai` 10. `feat(split-internal): dividir interno + promoção` 11. `refactor(insert): ligar caminho completo (sem/ com split)` 12. `test(split): inserir até provocar splits em cascata`
-
----
-
-## Du — Range & Remoção com Rebalanceamento
-
-**Contribui com:** range scan (folhas encadeadas) e delete robusto.
-
-**Tarefas técnicas**
-
-- `range(k1,k2)` caminhando pela primeira folha de `k1` e seguindo `next`.
-- `remove(key)` na folha (deslocar à esquerda; `--keyCount/valueCount`).
-- `rebalanceAfterDelete(...)`:
-  - **redistribuição** (empresta do irmão se ele tem > mínimo),
-  - **merge** (concatena e ajusta pai) quando não dá pra emprestar,
-  - tratamento de raiz “afinando” (root = único filho).
-
-- Mensagens de log simples (“REDIST L←R”, “MERGE L+R”).
-
-**Commits** 13. `feat(range): varrer k1..k2 pelas folhas encadeadas` 14. `feat(delete): remoção em folha com underflow check` 15. `feat(rebalance): redistribuição e merge com atualização no pai` 16. `test(delete): casos com redistribuição e merge`
+**Commits**
+13. `[Du] feat(range): varrer intervalo usando folhas encadeadas`
+14. `[Du] feat(delete): remover da folha com ajustes`
+15. `[Du] feat(rebalance): redistribuir/mergear após delete`
+16. `[Du] test(delete): cenários de redistribuição e merge`
 
 ---
 
-# Integração da aplicação (todos participam)
-
-## “loader” simples
-
-- Parser do CSV (linha por linha) transformando `id` (int) e `valor` (`artist - title`).
-- Comando `load <arquivo>` no CLI.
-
-## “comandos de mutação”
-
-- Comandos `insert <id> "<artista - título>"` e `remove <id>`.
-- Validar “cabem aspas” (caminho simples: tudo que vem depois do id vira o valor).
-
-## “comandos de leitura”
-
-- Comandos `search <id>` e `range <k1> <k2>` com prints limpos.
-
-## “roteiro de demonstração”
-
-- Arquivo `demo_script.txt` com a ordem de comandos a rodar no vídeo:
-  1. `load data/tracks_small.csv`
-  2. `search 205`
-  3. `range 300 600`
-  4. `insert 777 "Massive Attack - Teardrop"`
-  5. `range 700 800`
-  6. `remove 510` → observar log “redistrib/merge”
-  7. `search 510`
+# Integração da aplicação (todos)
+- CLI simples lendo linha a linha, separando tokens pelo primeiro espaço.
+- Comando `load <arquivo>`: cada linha lida cria par `int`/`String` e chama `insert`.
+- Guardar script de demonstração em `docs/demo_script.txt` com a sequência oficial.
+- Dataset mínimo de 20–40 registros em `data/tracks_small.csv` para acionar splits e deletes.
 
 ---
 
-# Critérios de aceitação (prontos pra apresentação)
-
-- **Corretude**:
-  - Busca retorna `valor` correto ou `null`.
-  - Inserção mantém **ordem** em folhas; splits criam **nova raiz** quando necessário.
-  - Remoção deixa a árvore **válida** (sem buracos), com redistribuição/merge quando precisa.
-  - Range imprime em **ordem crescente** e respeita `[k1, k2]`.
-
-- **Restrições**:
-  - Sem `List/ArrayList/Vector/StringBuilder/try-catch/exceptions`.
-  - Sem `arr.length` (exceto `String.length()`); usar **contadores** e **constantes**.
-  - Deslocamentos **manuais** em arrays.
-
-- **Aplicação**:
-  - `load`, `search`, `insert`, `remove`, `range` funcionando no terminal.
-  - Saídas legíveis (FOUND/null, RANGE com pares `id -> valor`).
-
-- **Teste mínimo**:
-  - Dataset com ~20–40 faixas para **forçar splits**.
-  - Dois deletes que acionarão **redistribuição** e **merge**.
-  - Dois ranges cruzando mais de uma folha.
+# Critérios de aceitação
+- **Corretude**: busca retorna valor correto; inserção mantém ordenação; remoção deixa invariantes válidas; range lista ordenado.
+- **Restrições atendidas**: zero coleções prontas; zero `array.length`; deslocamentos manuais.
+- **Aplicação**: comandos `load`, `search`, `insert`, `remove`, `range` produzem mensagens legíveis (`FOUND`, `INSERT`, `REMOVE`, `RANGE`).
+- **Testes manuais**: script de demonstração + casos específicos de split, redistribuição e merge.
 
 ---
 
-# Risco & combinados
-
-- **Ponto de atenção**: Off-by-one nos deslocamentos. Mitigar com helpers pequenos e **prints de debug** (ativáveis por constante `DEBUG`).
-- **Definição de “mínimo”**: manter **uma única ordem (M=4)** e **um único tipo** `int->String`. Evitar features extras (persistência, múltiplas colunas).
-- **Revisão cruzada**: cada PR/commit de uma pessoa é revisado por outra (A⇄C, B⇄D).
+# Riscos e mitigação
+- **Off-by-one em deslocamentos**: escrever helpers reutilizáveis e testar com arrays de tamanho 3.
+- **Underflow pós-delete**: validar min. chaves constante (`MIN_KEYS_LEAF = 2`, `MIN_CHILDREN = 2`).
+- **Duplicatas**: deixar claro no JavaDoc do `insert` que sobrescreve valor existente.
+- **Revisão cruzada**: Tism-man ↔ Cebolinha, NeoVini ↔ Du antes de fechar PR.
 
 ---
