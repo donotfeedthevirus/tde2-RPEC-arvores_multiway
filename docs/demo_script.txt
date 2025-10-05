@@ -1,0 +1,7 @@
+load data/tracks_small.csv
+search 205
+range 300 600
+insert 777 "Massive Attack - Teardrop"
+range 700 800
+remove 510
+search 510
