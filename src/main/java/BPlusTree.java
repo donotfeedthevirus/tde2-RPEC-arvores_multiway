@@ -108,6 +108,25 @@ public final class BPlusTree {
         }
     }
 
+    private void shiftLeftLeaf(BPTNode leaf, int index) {
+        int cursor = index;
+        while (cursor + 1 < leaf.keyCount) {
+            leaf.keys[cursor] = leaf.keys[cursor + 1];
+            leaf.values[cursor] = leaf.values[cursor + 1];
+            cursor++;
+        }
+        if (leaf.keyCount > 0) {
+            int eraseIndex = leaf.keyCount - 1;
+            leaf.keys[eraseIndex] = 0;
+            leaf.values[eraseIndex] = null;
+        }
+    }
+
+    private void writeLeafEntry(BPTNode leaf, int index, int key, String value) {
+        leaf.keys[index] = key;
+        leaf.values[index] = value;
+    }
+
     private boolean insertIntoFullLeaf(BPTNode leaf, int key, String value) {
         // TODO [Cebolinha] dividir folha e promover nova chave.
         if (DEBUG) {
@@ -120,8 +139,7 @@ public final class BPlusTree {
     public boolean insert(int key, String value) {
         if (root == null) {
             BPTNode leaf = createLeaf();
-            leaf.keys[0] = key;
-            leaf.values[0] = value;
+            writeLeafEntry(leaf, 0, key, value);
             leaf.keyCount = 1;
             leaf.valueCount = 1;
             setRoot(leaf);
@@ -138,8 +156,7 @@ public final class BPlusTree {
 
         if (leaf.keyCount < MAX_KEYS) {
             shiftRightLeaf(leaf, position);
-            leaf.keys[position] = key;
-            leaf.values[position] = value;
+            writeLeafEntry(leaf, position, key, value);
             leaf.keyCount++;
             leaf.valueCount++;
             return true;
