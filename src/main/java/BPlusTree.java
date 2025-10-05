@@ -413,6 +413,29 @@ public final class BPlusTree {
         return insertIntoFullLeaf(leaf, key, value);
     }
 
+    // [Du] Range simples percorrendo folhas encadeadas.
+    public void range(int startKey, int endKey) {
+        if (root == null || startKey > endKey) {
+            return;
+        }
+
+        BPTNode current = findLeaf(startKey);
+        while (current != null) {
+            int index = 0;
+            while (index < current.keyCount) {
+                int key = current.keys[index];
+                if (key > endKey) {
+                    return;
+                }
+                if (key >= startKey) {
+                    System.out.println(key + " -> " + current.values[index]);
+                }
+                index++;
+            }
+            current = current.next;
+        }
+    }
+
     private static final class LeafSplitResult {
         int promotedKey;
         BPTNode rightNode;
