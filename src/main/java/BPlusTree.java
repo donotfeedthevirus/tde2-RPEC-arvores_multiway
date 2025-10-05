@@ -268,10 +268,125 @@ public final class BPlusTree {
     }
 
     private void insertIntoFullInternal(BPTNode parent, int childIndex, int promotedKey, BPTNode rightChild) {
-        // TODO [Cebolinha] dividir interno e propagar promoção.
-        if (DEBUG) {
-            System.out.println("WARN split interno pendente");
+        InternalSplitResult result = splitInternal(parent, childIndex, promotedKey, rightChild);
+        BPTNode right = result.rightNode;
+        int upKey = result.promotedKey;
+
+        if (parent.parent == null) {
+            BPTNode newRoot = createInternal();
+            newRoot.keys[0] = upKey;
+            newRoot.keyCount = 1;
+            newRoot.children[0] = parent;
+            newRoot.children[1] = right;
+            newRoot.childCount = 2;
+            parent.parent = newRoot;
+            right.parent = newRoot;
+            setRoot(newRoot);
+        } else {
+            insertIntoParent(parent, upKey, right);
         }
+    }
+
+    private InternalSplitResult splitInternal(BPTNode parent, int childIndex, int promotedKey, BPTNode rightChild) {
+        int existingKeys = parent.keyCount;
+        int existingChildren = parent.childCount;
+
+        int[] tempKeys = new int[MAX_CHILDREN];
+        BPTNode[] tempChildren = new BPTNode[MAX_CHILDREN + 1];
+
+        int index = 0;
+        while (index < existingKeys) {
+            tempKeys[index] = parent.keys[index];
+            index++;
+        }
+
+        index = 0;
+        while (index < existingChildren) {
+            tempChildren[index] = parent.children[index];
+            index++;
+        }
+
+        int childMover = existingChildren;
+        while (childMover > childIndex + 1) {
+            tempChildren[childMover] = tempChildren[childMover - 1];
+            childMover--;
+        }
+        tempChildren[childIndex + 1] = rightChild;
+
+        int keyMover = existingKeys;
+        while (keyMover > childIndex) {
+            tempKeys[keyMover] = tempKeys[keyMover - 1];
+            keyMover--;
+        }
+        tempKeys[childIndex] = promotedKey;
+
+        int totalKeys = existingKeys + 1;
+        int totalChildren = existingChildren + 1;
+        int promoteIndex = totalKeys / 2;
+
+        int promoted = tempKeys[promoteIndex];
+        BPTNode right = createInternal();
+        right.parent = parent.parent;
+
+        int clearKey = promoteIndex;
+        while (clearKey < MAX_KEYS) {
+            parent.keys[clearKey] = 0;
+            clearKey++;
+        }
+
+        int clearChild = promoteIndex + 1;
+        while (clearChild < MAX_CHILDREN) {
+            parent.children[clearChild] = null;
+            clearChild++;
+        }
+
+        parent.keyCount = 0;
+        parent.childCount = 0;
+
+        int leftKeyIndex = 0;
+        while (leftKeyIndex < promoteIndex) {
+            parent.keys[leftKeyIndex] = tempKeys[leftKeyIndex];
+            leftKeyIndex++;
+        }
+        parent.keyCount = promoteIndex;
+
+        int leftChildIndex = 0;
+        while (leftChildIndex <= promoteIndex) {
+            BPTNode child = tempChildren[leftChildIndex];
+            parent.children[leftChildIndex] = child;
+            if (child != null) {
+                child.parent = parent;
+            }
+            leftChildIndex++;
+        }
+        parent.childCount = promoteIndex + 1;
+
+        int rightKeyIndex = 0;
+        int tempKeyIndex = promoteIndex + 1;
+        while (tempKeyIndex < totalKeys) {
+            right.keys[rightKeyIndex] = tempKeys[tempKeyIndex];
+            rightKeyIndex++;
+            tempKeyIndex++;
+        }
+        right.keyCount = rightKeyIndex;
+
+        int rightChildIndex = 0;
+        int tempChildIndex = promoteIndex + 1;
+        while (tempChildIndex < totalChildren) {
+            BPTNode child = tempChildren[tempChildIndex];
+            right.children[rightChildIndex] = child;
+            if (child != null) {
+                child.parent = right;
+            }
+            rightChildIndex++;
+            tempChildIndex++;
+        }
+        right.childCount = rightChildIndex;
+
+        InternalSplitResult result = new InternalSplitResult();
+        result.promotedKey = promoted;
+        result.rightNode = right;
+        return result;
     }
 
     // [NeoVini] Inserção básica em folha sem tratar overflow.
@@ -305,6 +420,11 @@ public final class BPlusTree {
     }
 
     private static final class LeafSplitResult {
+        int promotedKey;
+        BPTNode rightNode;
+    }
+
+    private static final class InternalSplitResult {
         int promotedKey;
         BPTNode rightNode;
     }
