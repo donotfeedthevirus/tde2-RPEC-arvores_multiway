@@ -128,11 +128,96 @@ public final class BPlusTree {
     }
 
     private boolean insertIntoFullLeaf(BPTNode leaf, int key, String value) {
-        // TODO [Cebolinha] dividir folha e promover nova chave.
-        if (DEBUG) {
-            System.out.println("WARN overflow pendente em folha");
+        LeafSplitResult result = splitLeaf(leaf, key, value);
+        BPTNode right = result.rightNode;
+        int promotedKey = result.promotedKey;
+
+        if (leaf.parent == null) {
+            BPTNode newRoot = createInternal();
+            newRoot.keys[0] = promotedKey;
+            newRoot.keyCount = 1;
+            newRoot.children[0] = leaf;
+            newRoot.children[1] = right;
+            newRoot.childCount = 2;
+            leaf.parent = newRoot;
+            right.parent = newRoot;
+            setRoot(newRoot);
+        } else {
+            insertIntoParent(leaf, promotedKey, right);
         }
-        return false;
+        return true;
+    }
+
+    private LeafSplitResult splitLeaf(BPTNode leaf, int key, String value) {
+        int[] tempKeys = new int[MAX_CHILDREN];
+        String[] tempValues = new String[MAX_CHILDREN];
+
+        int total = leaf.keyCount;
+        int index = 0;
+        while (index < total) {
+            tempKeys[index] = leaf.keys[index];
+            tempValues[index] = leaf.values[index];
+            index++;
+        }
+
+        int position = findLeafPosition(leaf, key);
+        int mover = total;
+        while (mover > position) {
+            tempKeys[mover] = tempKeys[mover - 1];
+            tempValues[mover] = tempValues[mover - 1];
+            mover--;
+        }
+        tempKeys[position] = key;
+        tempValues[position] = value;
+        total++;
+
+        int splitPoint = total / 2;
+        BPTNode right = createLeaf();
+        right.parent = leaf.parent;
+
+        int clearIndex = 0;
+        while (clearIndex < MAX_KEYS) {
+            leaf.keys[clearIndex] = 0;
+            leaf.values[clearIndex] = null;
+            clearIndex++;
+        }
+
+        int leftCount = splitPoint;
+        int leftIndex = 0;
+        while (leftIndex < leftCount) {
+            leaf.keys[leftIndex] = tempKeys[leftIndex];
+            leaf.values[leftIndex] = tempValues[leftIndex];
+            leftIndex++;
+        }
+        leaf.keyCount = leftCount;
+        leaf.valueCount = leftCount;
+
+        int rightIndex = 0;
+        int tempIndex = splitPoint;
+        int rightCount = total - splitPoint;
+        while (rightIndex < rightCount) {
+            right.keys[rightIndex] = tempKeys[tempIndex];
+            right.values[rightIndex] = tempValues[tempIndex];
+            rightIndex++;
+            tempIndex++;
+        }
+        right.keyCount = rightCount;
+        right.valueCount = rightCount;
+
+        right.next = leaf.next;
+        leaf.next = right;
+
+        LeafSplitResult result = new LeafSplitResult();
+        result.rightNode = right;
+        result.promotedKey = right.keys[0];
+        return result;
+    }
+
+    private void insertIntoParent(BPTNode left, int promotedKey, BPTNode right) {
+        // TODO [Cebolinha] inserir novo ponteiro no pai existente.
+        if (DEBUG) {
+            System.out.println("WARN parent insert pendente");
+        }
     }
 
     // [NeoVini] Inserção básica em folha sem tratar overflow.
@@ -163,6 +248,11 @@ public final class BPlusTree {
         }
 
         return insertIntoFullLeaf(leaf, key, value);
+    }
+
+    private static final class LeafSplitResult {
+        int promotedKey;
+        BPTNode rightNode;
     }
 
     // [Tism-man] Nó básico com contadores manuais e ponteiros necessários.
