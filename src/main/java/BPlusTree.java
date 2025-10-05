@@ -27,6 +27,42 @@ public final class BPlusTree {
         return root;
     }
 
+    // [Tism-man] Busca pelo nó folha que deve conter a chave.
+    public BPTNode findLeaf(int key) {
+        BPTNode current = root;
+        if (current == null) {
+            return null;
+        }
+        while (!current.isLeaf) {
+            int childIndex = 0;
+            while (childIndex < current.keyCount && key >= current.keys[childIndex]) {
+                childIndex++;
+            }
+            current = current.children[childIndex];
+        }
+        return current;
+    }
+
+    // [Tism-man] Consulta linear dentro da folha encontrada.
+    public String search(int key) {
+        BPTNode leaf = findLeaf(key);
+        if (leaf == null) {
+            return null;
+        }
+        int index = 0;
+        while (index < leaf.keyCount) {
+            int probe = leaf.keys[index];
+            if (probe == key) {
+                return leaf.values[index];
+            }
+            if (probe > key) {
+                return null;
+            }
+            index++;
+        }
+        return null;
+    }
+
     private BPTNode createLeaf() {
         return new BPTNode(true);
     }
