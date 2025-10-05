@@ -132,19 +132,7 @@ public final class BPlusTree {
         BPTNode right = result.rightNode;
         int promotedKey = result.promotedKey;
 
-        if (leaf.parent == null) {
-            BPTNode newRoot = createInternal();
-            newRoot.keys[0] = promotedKey;
-            newRoot.keyCount = 1;
-            newRoot.children[0] = leaf;
-            newRoot.children[1] = right;
-            newRoot.childCount = 2;
-            leaf.parent = newRoot;
-            right.parent = newRoot;
-            setRoot(newRoot);
-        } else {
-            insertIntoParent(leaf, promotedKey, right);
-        }
+        propagateSplit(leaf, promotedKey, right);
         return true;
     }
 
@@ -272,19 +260,25 @@ public final class BPlusTree {
         BPTNode right = result.rightNode;
         int upKey = result.promotedKey;
 
-        if (parent.parent == null) {
+        propagateSplit(parent, upKey, right);
+    }
+
+    private void propagateSplit(BPTNode left, int promotedKey, BPTNode right) {
+        if (left.parent == null) {
             BPTNode newRoot = createInternal();
-            newRoot.keys[0] = upKey;
+            newRoot.keys[0] = promotedKey;
             newRoot.keyCount = 1;
-            newRoot.children[0] = parent;
+            newRoot.children[0] = left;
             newRoot.children[1] = right;
             newRoot.childCount = 2;
-            parent.parent = newRoot;
+            left.parent = newRoot;
             right.parent = newRoot;
             setRoot(newRoot);
-        } else {
-            insertIntoParent(parent, upKey, right);
+            return;
         }
+
+        right.parent = left.parent;
+        insertIntoParent(left, promotedKey, right);
     }
 
     private InternalSplitResult splitInternal(BPTNode parent, int childIndex, int promotedKey, BPTNode rightChild) {
