@@ -436,6 +436,69 @@ public final class BPlusTree {
         }
     }
 
+    // [Du] Remoção básica com chamada para rebalanceamento.
+    public boolean remove(int key) {
+        if (root == null) {
+            return false;
+        }
+
+        BPTNode leaf = findLeaf(key);
+        if (leaf == null) {
+            return false;
+        }
+
+        int index = findKeyIndex(leaf, key);
+        if (index < 0) {
+            return false;
+        }
+
+        shiftLeftLeaf(leaf, index);
+        leaf.keyCount--;
+        leaf.valueCount--;
+
+        if (leaf == root) {
+            if (leaf.keyCount == 0) {
+                clear();
+            }
+            return true;
+        }
+
+        refreshParentKey(leaf);
+
+        if (leaf.keyCount < MIN_KEYS_LEAF) {
+            rebalanceAfterDelete(leaf);
+        }
+        return true;
+    }
+
+    private int findKeyIndex(BPTNode node, int key) {
+        int index = 0;
+        while (index < node.keyCount) {
+            if (node.keys[index] == key) {
+                return index;
+            }
+            index++;
+        }
+        return -1;
+    }
+
+    private void refreshParentKey(BPTNode node) {
+        if (node.parent == null || node.keyCount == 0) {
+            return;
+        }
+        int parentIndex = findChildIndex(node.parent, node);
+        if (parentIndex > 0) {
+            node.parent.keys[parentIndex - 1] = node.keys[0];
+        }
+    }
+
+    private void rebalanceAfterDelete(BPTNode node) {
+        // TODO [Du] redistribuir/mergear após remoção.
+        if (DEBUG) {
+            System.out.println("WARN delete rebalance pendente");
+        }
+    }
+
     private static final class LeafSplitResult {
         int promotedKey;
         BPTNode rightNode;
