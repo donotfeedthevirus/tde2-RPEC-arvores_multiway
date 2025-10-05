@@ -214,9 +214,63 @@ public final class BPlusTree {
     }
 
     private void insertIntoParent(BPTNode left, int promotedKey, BPTNode right) {
-        // TODO [Cebolinha] inserir novo ponteiro no pai existente.
+        BPTNode parent = left.parent;
+        if (parent == null) {
+            return;
+        }
+
+        int childIndex = findChildIndex(parent, left);
+        if (childIndex < 0) {
+            return;
+        }
+
+        if (parent.keyCount < MAX_KEYS) {
+            shiftRightChildren(parent, childIndex + 1);
+            parent.children[childIndex + 1] = right;
+            parent.childCount++;
+
+            shiftRightKeysInternal(parent, childIndex);
+            parent.keys[childIndex] = promotedKey;
+            parent.keyCount++;
+
+            right.parent = parent;
+            return;
+        }
+
+        insertIntoFullInternal(parent, childIndex, promotedKey, right);
+    }
+
+    private int findChildIndex(BPTNode parent, BPTNode child) {
+        int index = 0;
+        while (index < parent.childCount) {
+            if (parent.children[index] == child) {
+                return index;
+            }
+            index++;
+        }
+        return -1;
+    }
+
+    private void shiftRightChildren(BPTNode parent, int index) {
+        int cursor = parent.childCount;
+        while (cursor > index) {
+            parent.children[cursor] = parent.children[cursor - 1];
+            cursor--;
+        }
+    }
+
+    private void shiftRightKeysInternal(BPTNode parent, int index) {
+        int cursor = parent.keyCount;
+        while (cursor > index) {
+            parent.keys[cursor] = parent.keys[cursor - 1];
+            cursor--;
+        }
+    }
+
+    private void insertIntoFullInternal(BPTNode parent, int childIndex, int promotedKey, BPTNode rightChild) {
+        // TODO [Cebolinha] dividir interno e propagar promoção.
         if (DEBUG) {
-            System.out.println("WARN parent insert pendente");
+            System.out.println("WARN split interno pendente");
         }
     }
 
