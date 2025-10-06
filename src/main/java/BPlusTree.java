@@ -492,7 +492,7 @@ public final class BPlusTree {
         if (node == null) {
             return;
         }
-    
+
         if (node.parent == null) {
             if (!node.isLeaf && node.childCount == 1) {
                 BPTNode newRoot = node.children[0];
@@ -502,7 +502,7 @@ public final class BPlusTree {
             }
             return;
         }
-    
+
         int minKeys = node.isLeaf ? MIN_KEYS_LEAF : (MIN_CHILDREN - 1);
         if (node.keyCount >= minKeys) {
             if (node.isLeaf) {
@@ -510,12 +510,12 @@ public final class BPlusTree {
             }
             return;
         }
-    
+
         BPTNode parent = node.parent;
         int index = findChildIndex(parent, node);
         BPTNode leftSibling = index > 0 ? parent.children[index - 1] : null;
         BPTNode rightSibling = index + 1 < parent.childCount ? parent.children[index + 1] : null;
-    
+
         if (node.isLeaf) {
             if (leftSibling != null && leftSibling.keyCount > MIN_KEYS_LEAF) {
                 borrowFromLeftLeaf(node, leftSibling, parent, index);
@@ -536,7 +536,7 @@ public final class BPlusTree {
             }
             return;
         }
-    
+
         int internalMin = MIN_CHILDREN - 1;
         if (leftSibling != null && leftSibling.keyCount > internalMin) {
             borrowFromLeftInternal(node, leftSibling, parent, index);
@@ -556,7 +556,7 @@ public final class BPlusTree {
             rebalanceAfterDelete(parent);
         }
     }
-    
+
     private void borrowFromLeftLeaf(BPTNode node, BPTNode leftSibling, BPTNode parent, int index) {
         shiftRightLeaf(node, 0);
         int donor = leftSibling.keyCount - 1;
@@ -564,31 +564,31 @@ public final class BPlusTree {
         node.values[0] = leftSibling.values[donor];
         node.keyCount++;
         node.valueCount++;
-    
+
         leftSibling.keys[donor] = 0;
         leftSibling.values[donor] = null;
         leftSibling.keyCount--;
         leftSibling.valueCount--;
-    
+
         parent.keys[index - 1] = node.keys[0];
     }
-    
+
     private void borrowFromRightLeaf(BPTNode node, BPTNode rightSibling, BPTNode parent, int index) {
         int insert = node.keyCount;
         node.keys[insert] = rightSibling.keys[0];
         node.values[insert] = rightSibling.values[0];
         node.keyCount++;
         node.valueCount++;
-    
+
         shiftLeftLeaf(rightSibling, 0);
         rightSibling.keyCount--;
         rightSibling.valueCount--;
-    
+
         if (rightSibling.keyCount > 0) {
             parent.keys[index] = rightSibling.keys[0];
         }
     }
-    
+
     private void mergeLeaves(BPTNode left, BPTNode right, BPTNode parent, int parentKeyIndex) {
         int write = left.keyCount;
         int read = 0;
@@ -601,64 +601,64 @@ public final class BPlusTree {
         left.keyCount = write;
         left.valueCount = write;
         left.next = right.next;
-    
+
         deleteParentEntry(parent, parentKeyIndex);
         refreshParentKey(left);
     }
-    
+
     private void borrowFromLeftInternal(BPTNode node, BPTNode leftSibling, BPTNode parent, int index) {
         shiftRightKeysInternal(node, 0);
         shiftRightChildren(node, 0);
-    
+
         int donorKey = leftSibling.keyCount - 1;
         int donorChild = leftSibling.childCount - 1;
-    
+
         node.keys[0] = parent.keys[index - 1];
         node.keyCount++;
-    
+
         node.children[0] = leftSibling.children[donorChild];
         if (node.children[0] != null) {
             node.children[0].parent = node;
         }
         node.childCount++;
-    
+
         parent.keys[index - 1] = leftSibling.keys[donorKey];
-    
+
         leftSibling.keys[donorKey] = 0;
         leftSibling.keyCount--;
         leftSibling.children[donorChild] = null;
         leftSibling.childCount--;
     }
-    
+
     private void borrowFromRightInternal(BPTNode node, BPTNode rightSibling, BPTNode parent, int index) {
         int insertKey = node.keyCount;
         node.keys[insertKey] = parent.keys[index];
         node.keyCount++;
-    
+
         int insertChild = node.childCount;
         node.children[insertChild] = rightSibling.children[0];
         if (node.children[insertChild] != null) {
             node.children[insertChild].parent = node;
         }
         node.childCount++;
-    
+
         shiftLeftChildren(rightSibling, 0);
         shiftLeftKeysInternal(rightSibling, 0);
         rightSibling.childCount--;
         rightSibling.keyCount--;
-    
+
         if (rightSibling.keyCount > 0) {
             parent.keys[index] = rightSibling.keys[0];
         } else {
             parent.keys[index] = node.keys[node.keyCount - 1];
         }
     }
-    
+
     private void mergeInternals(BPTNode left, BPTNode right, BPTNode parent, int parentKeyIndex) {
         int writeKey = left.keyCount;
         left.keys[writeKey] = parent.keys[parentKeyIndex];
         writeKey++;
-    
+
         int readKey = 0;
         while (readKey < right.keyCount) {
             left.keys[writeKey] = right.keys[readKey];
@@ -666,7 +666,7 @@ public final class BPlusTree {
             readKey++;
         }
         left.keyCount = writeKey;
-    
+
         int writeChild = left.childCount;
         int readChild = 0;
         while (readChild < right.childCount) {
@@ -678,10 +678,10 @@ public final class BPlusTree {
             readChild++;
         }
         left.childCount = writeChild;
-    
+
         deleteParentEntry(parent, parentKeyIndex);
     }
-    
+
     private void deleteParentEntry(BPTNode parent, int keyIndex) {
         int mover = keyIndex;
         while (mover + 1 < parent.keyCount) {
@@ -692,7 +692,7 @@ public final class BPlusTree {
             parent.keys[parent.keyCount - 1] = 0;
         }
         parent.keyCount--;
-    
+
         int childMover = keyIndex + 1;
         while (childMover + 1 < parent.childCount) {
             parent.children[childMover] = parent.children[childMover + 1];
@@ -702,13 +702,13 @@ public final class BPlusTree {
             parent.children[parent.childCount - 1] = null;
         }
         parent.childCount--;
-    
+
         if (parent.parent == null && parent.keyCount == 0 && parent.childCount == 1) {
             BPTNode newRoot = parent.children[0];
             setRoot(newRoot);
         }
     }
-    
+
     private void shiftLeftKeysInternal(BPTNode node, int index) {
         int cursor = index;
         while (cursor + 1 < node.keyCount) {
@@ -719,7 +719,7 @@ public final class BPlusTree {
             node.keys[node.keyCount - 1] = 0;
         }
     }
-    
+
     private void shiftLeftChildren(BPTNode node, int index) {
         int cursor = index;
         while (cursor + 1 < node.childCount) {
@@ -741,7 +741,6 @@ public final class BPlusTree {
         BPTNode rightNode;
     }
 
-    // [Tism-man] Nó básico com contadores manuais e ponteiros necessários.
     static final class BPTNode {
         boolean isLeaf;
         int[] keys = new int[MAX_KEYS];
