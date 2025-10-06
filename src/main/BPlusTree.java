@@ -409,62 +409,62 @@ public final class BPlusTree {
     // }
 
     // [Du] Range simples percorrendo folhas encadeadas.
-    // public void range(int startKey, int endKey) {
-    //     if (root == null || startKey > endKey) {
-    //         return;
-    //     }
-    //
-    //     BPTNode current = findLeaf(startKey);
-    //     while (current != null) {
-    //         int index = 0;
-    //         while (index < current.keyCount) {
-    //             int key = current.keys[index];
-    //             if (key > endKey) {
-    //                 return;
-    //             }
-    //             if (key >= startKey) {
-    //                 System.out.println(key + " -> " + current.values[index]);
-    //             }
-    //             index++;
-    //         }
-    //         current = current.next;
-    //     }
-    // }
+    public void range(int startKey, int endKey) {
+        if (root == null || startKey > endKey) {
+            return;
+        }
+    
+        BPTNode current = findLeaf(startKey);
+        while (current != null) {
+            int index = 0;
+            while (index < current.keyCount) {
+                int key = current.keys[index];
+                if (key > endKey) {
+                    return;
+                }
+                if (key >= startKey) {
+                    System.out.println(key + " -> " + current.values[index]);
+                }
+                index++;
+            }
+            current = current.next;
+        }
+    }
 
     // [Du] Remoção básica com chamada para rebalanceamento.
-    // public boolean remove(int key) {
-    //     if (root == null) {
-    //         return false;
-    //     }
-    //
-    //     BPTNode leaf = findLeaf(key);
-    //     if (leaf == null) {
-    //         return false;
-    //     }
-    //
-    //     int index = findKeyIndex(leaf, key);
-    //     if (index < 0) {
-    //         return false;
-    //     }
-    //
-    //     shiftLeftLeaf(leaf, index);
-    //     leaf.keyCount--;
-    //     leaf.valueCount--;
-    //
-    //     if (leaf == root) {
-    //         if (leaf.keyCount == 0) {
-    //             clear();
-    //         }
-    //         return true;
-    //     }
-    //
-    //     refreshParentKey(leaf);
-    //
-    //     if (leaf.keyCount < MIN_KEYS_LEAF) {
-    //         rebalanceAfterDelete(leaf);
-    //     }
-    //     return true;
-    // }
+    public boolean remove(int key) {
+        if (root == null) {
+            return false;
+        }
+    
+        BPTNode leaf = findLeaf(key);
+        if (leaf == null) {
+            return false;
+        }
+    
+        int index = findKeyIndex(leaf, key);
+        if (index < 0) {
+            return false;
+        }
+    
+        shiftLeftLeaf(leaf, index);
+        leaf.keyCount--;
+        leaf.valueCount--;
+    
+        if (leaf == root) {
+            if (leaf.keyCount == 0) {
+                clear();
+            }
+            return true;
+        }
+    
+        refreshParentKey(leaf);
+    
+        if (leaf.keyCount < MIN_KEYS_LEAF) {
+            rebalanceAfterDelete(leaf);
+        }
+        return true;
+    }
 
     private int findKeyIndex(BPTNode node, int key) {
         int index = 0;
