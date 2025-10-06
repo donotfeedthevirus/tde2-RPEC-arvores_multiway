@@ -378,37 +378,37 @@ public final class BPlusTree {
         return result;
     }
 
-    // [NeoVini] Inserção básica em folha sem tratar overflow.
-    // public boolean insert(int key, String value) {
-    //     if (root == null) {
-    //         BPTNode leaf = createLeaf();
-    //         writeLeafEntry(leaf, 0, key, value);
-    //         leaf.keyCount = 1;
-    //         leaf.valueCount = 1;
-    //         setRoot(leaf);
-    //         return true;
-    //     }
-    //
-    //     BPTNode leaf = findLeaf(key);
-    //     int position = findLeafPosition(leaf, key);
-    //
-    //     if (position < leaf.keyCount && leaf.keys[position] == key) {
-    //         leaf.values[position] = value;
-    //         return false;
-    //     }
-    //
-    //     if (leaf.keyCount < MAX_KEYS) {
-    //         shiftRightLeaf(leaf, position);
-    //         writeLeafEntry(leaf, position, key, value);
-    //         leaf.keyCount++;
-    //         leaf.valueCount++;
-    //         return true;
-    //     }
-    //
-    //     return insertIntoFullLeaf(leaf, key, value);
-    // }
+   // Insert do nó - Vini 
+    public boolean insert(int key, String value) {
+        if (root == null) {
+            BPTNode leaf = createLeaf();
+            writeLeafEntry(leaf, 0, key, value);
+            leaf.keyCount = 1;
+            leaf.valueCount = 1;
+            setRoot(leaf);
+            return true;
+        }
+    
+        BPTNode leaf = findLeaf(key);
+        int position = findLeafPosition(leaf, key);
+    
+        if (position < leaf.keyCount && leaf.keys[position] == key) {
+            leaf.values[position] = value;
+            return false;
+        }
+    
+        if (leaf.keyCount < MAX_KEYS) {
+            shiftRightLeaf(leaf, position);
+            writeLeafEntry(leaf, position, key, value);
+            leaf.keyCount++;
+            leaf.valueCount++;
+            return true;
+        }
+    
+        return insertIntoFullLeaf(leaf, key, value);
+    }
 
-    // [Du] Range simples percorrendo folhas encadeadas.
+    // Range simples percorrendo folhas encadeadas.
     public void range(int startKey, int endKey) {
         if (root == null || startKey > endKey) {
             return;
