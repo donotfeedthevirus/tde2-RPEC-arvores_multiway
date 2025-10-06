@@ -1,4 +1,3 @@
-[Cebolinha] Teste para validar splits em cascata.
 public final class BPlusTreeSplitTest {
     private BPlusTreeSplitTest() {
     }
