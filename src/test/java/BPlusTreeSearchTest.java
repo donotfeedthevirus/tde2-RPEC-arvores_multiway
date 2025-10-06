@@ -1,4 +1,3 @@
-// [Tism-man] Teste simples para validar findLeaf e search.
 public final class BPlusTreeSearchTest {
     private BPlusTreeSearchTest() {
     }
